@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
 const KHMER_WEEKDAYS = ["អាទិត្យ", "ច័ន្ទ", "អង្គារ", "ពុធ", "ព្រហស្បតិ៍", "សុក្រ", "សៅរ៍"];
-const KHMER_MONTHS: Record<string, string> = {
+const KHMER_MONTHS: Record<number, string> = {
   1: "មករា",
   2: "កុម្ភៈ",
   3: "មីនា",
@@ -18,22 +18,29 @@ const KHMER_MONTHS: Record<string, string> = {
   12: "ធ្នូ",
 };
 
+interface Day {
+  date: string;
+  day: number;
+  isHoliday: boolean;
+  holidayName?: string;
+}
+
 export default function Page() {
   const today = new Date();
-  const [month, setMonth] = useState(today.getMonth());
-  const [year, setYear] = useState(today.getFullYear());
-  const [days, setDays] = useState<any[]>([]);
-  const [hoveredDay, setHoveredDay] = useState<any | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [month, setMonth] = useState<number>(today.getMonth()); 
+  const [year, setYear] = useState<number>(today.getFullYear());
+  const [days, setDays] = useState<Day[]>([]);
+  const [hoveredDay, setHoveredDay] = useState<Day | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchDays = async () => {
+  const fetchDays = async (): Promise<void> => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(`/api/khmer-calendar?year=${year}&month=${month + 1}`);
       if (!res.ok) throw new Error("Failed to fetch calendar data");
-      const data = await res.json();
+      const data: Day[] = await res.json();
       setDays(data);
     } catch (err: unknown) {
       if (err instanceof Error) setError(err.message);
@@ -45,34 +52,31 @@ export default function Page() {
 
   useEffect(() => {
     fetchDays();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [month, year]);
 
   const prevMonth = () => {
     if (month === 0) {
       setMonth(11);
       setYear(year - 1);
-    } else {
-      setMonth(month - 1);
-    }
+    } else setMonth(month - 1);
   };
 
   const nextMonth = () => {
     if (month === 11) {
       setMonth(0);
       setYear(year + 1);
-    } else {
-      setMonth(month + 1);
-    }
+    } else setMonth(month + 1);
   };
 
-  const getDayColor = (day: any) => {
+  const getDayColor = (day: Day) => {
     const d = new Date(day.date);
     if (day.isHoliday || d.getDay() === 0) return "bg-red-400 text-white";
     if (d.getDay() === 6) return "bg-yellow-300 text-black";
     return "bg-gray-100 text-black";
   };
 
-  const getDayType = (day: any) => {
+  const getDayType = (day: Day) => {
     const d = new Date(day.date);
     if (day.isHoliday) return `Holiday: ${day.holidayName}`;
     if (d.getDay() === 0) return "Sunday";
@@ -80,7 +84,7 @@ export default function Page() {
     return "Normal Day";
   };
 
-  const firstDayOfMonth = new Date(year, month, 1).getDay();
+  const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0 = Sunday
   const totalCells = 42;
   const emptyCellsBefore = Array(firstDayOfMonth).fill(null);
   const emptyCellsAfter = Array(totalCells - (emptyCellsBefore.length + days.length)).fill(null);
@@ -96,9 +100,11 @@ export default function Page() {
           >
             ◀
           </button>
+
           <h1 className="text-2xl font-bold text-orange-600">
-            {KHMER_MONTHS[String(month + 1)]} {year}
+            {KHMER_MONTHS[month + 1] ?? "Unknown Month"} {year}
           </h1>
+
           <button
             onClick={nextMonth}
             className="px-3 py-1 bg-orange-100 rounded-lg hover:bg-orange-200 disabled:opacity-50"
@@ -108,9 +114,7 @@ export default function Page() {
           </button>
         </div>
 
-        {error && (
-          <div className="text-red-600 text-center mb-4">{error}</div>
-        )}
+        {error && <div className="text-red-600 text-center mb-4">{error}</div>}
 
         {loading ? (
           <div className="text-center text-gray-600">Loading...</div>
@@ -126,6 +130,7 @@ export default function Page() {
               {emptyCellsBefore.map((_, i) => (
                 <div key={`empty-before-${i}`} className="h-16" />
               ))}
+
               {days.map((day) => (
                 <motion.div
                   key={day.date}
@@ -150,6 +155,7 @@ export default function Page() {
                   )}
                 </motion.div>
               ))}
+
               {emptyCellsAfter.map((_, i) => (
                 <div key={`empty-after-${i}`} className="h-16" />
               ))}
