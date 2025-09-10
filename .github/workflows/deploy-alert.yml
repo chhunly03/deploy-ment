@@ -1,32 +1,42 @@
-name: Auto Deploy Next.js & Notify Telegram
+name: deploy
 
 on:
   push:
     branches:
-      - main  # or your default branch
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Vercel Deploy
-        run: |
-          curl -X POST ${{ secrets.VERCEL_HOOK_URL }}
 
-      - name: Notify Telegram
-        uses: actions/setup-node@v3
-        with:
-          node-version: 20
-      - run: |
-          npm install node-fetch
-          node -e "
-            const fetch = require('node-fetch');
-            fetch('https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                chat_id: '${{ secrets.TELEGRAM_CHAT_ID }}',
-                text: '✅ Code pushed and deployment triggered on Vercel!'
-              })
-            });
-          "
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to Vercel
+        run: |
+          curl -X POST "$VERCEL_DEPLOY_HOOK"
+        env:
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+
+  notify-success:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: needs.deploy.result == 'success'
+    steps:
+      - name: Notify Telegram (success)
+        run: |
+          curl -X POST "https://your-project.vercel.app/api/notifyTelegram" \
+          -H "Content-Type: application/json" \
+          -d '{"message":"✅ Deployment successful!"}'
+
+  notify-failure:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: needs.deploy.result == 'failure'
+    steps:
+      - name: Notify Telegram (failure)
+        run: |
+          curl -X POST "https://your-project.vercel.app/api/notifyTelegram" \
+          -H "Content-Type: application/json" \
+          -d '{"message":"❌ Deployment failed!"}'
