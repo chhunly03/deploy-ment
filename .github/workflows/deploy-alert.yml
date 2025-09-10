@@ -16,7 +16,7 @@ jobs:
       - name: Deploy to Vercel
         run: |
           if [ -z "$VERCEL_DEPLOY_HOOK" ]; then
-            echo "VERCEL_DEPLOY_HOOK is not set"
+            echo "❌ ERROR: VERCEL_DEPLOY_HOOK is not set. Please add it as a repository secret in GitHub."
             exit 1
           fi
           curl -X POST "$VERCEL_DEPLOY_HOOK"
