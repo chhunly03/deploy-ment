@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
 const KHMER_WEEKDAYS = ["អាទិត្យ", "ច័ន្ទ", "អង្គារ", "ពុធ", "ព្រហស្បតិ៍", "សុក្រ", "សៅរ៍"];
-const KHMER_MONTHS = {
+const KHMER_MONTHS: Record<string, string> = {
   1: "មករា",
   2: "កុម្ភៈ",
   3: "មីនា",
@@ -22,24 +22,22 @@ export default function Page() {
   const today = new Date();
   const [month, setMonth] = useState(today.getMonth());
   const [year, setYear] = useState(today.getFullYear());
-  const [days, setDays] = useState([]);
-  const [hoveredDay, setHoveredDay] = useState(null);
+  const [days, setDays] = useState<any[]>([]);
+  const [hoveredDay, setHoveredDay] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchDays = async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(`/api/khmer-calendar?year=${year}&month=${month + 1}`);
-      if (!res.ok) {
-        throw new Error("Failed to fetch calendar data");
-      }
+      if (!res.ok) throw new Error("Failed to fetch calendar data");
       const data = await res.json();
-      console.log("Fetched days:", data); // Debug the API response
       setDays(data);
-    } catch (err) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      else setError(String(err));
     } finally {
       setLoading(false);
     }
@@ -67,14 +65,14 @@ export default function Page() {
     }
   };
 
-  const getDayColor = (day) => {
+  const getDayColor = (day: any) => {
     const d = new Date(day.date);
-    if (day.isHoliday || d.getDay() === 0) return "bg-red-400 text-white"; // Holiday or Sunday
-    if (d.getDay() === 6) return "bg-yellow-300 text-black"; // Saturday
-    return "bg-gray-100 text-black"; // Normal day
+    if (day.isHoliday || d.getDay() === 0) return "bg-red-400 text-white";
+    if (d.getDay() === 6) return "bg-yellow-300 text-black";
+    return "bg-gray-100 text-black";
   };
 
-  const getDayType = (day) => {
+  const getDayType = (day: any) => {
     const d = new Date(day.date);
     if (day.isHoliday) return `Holiday: ${day.holidayName}`;
     if (d.getDay() === 0) return "Sunday";
@@ -82,13 +80,8 @@ export default function Page() {
     return "Normal Day";
   };
 
-  // Calculate empty cells for the full 6x7 grid
-  const firstDay = new Date(year, month, 1);
-  const firstDayOfMonth = firstDay.getDay(); // 0 = Sunday, 6 = Saturday
-  const lastDay = new Date(year, month + 1, 0);
-  const lastDayOfMonth = lastDay.getDay();
-  const totalCells = 42; // 6 rows x 7 columns
-  const daysInMonth = new Date(year, month, 0).getDate();
+  const firstDayOfMonth = new Date(year, month, 1).getDay();
+  const totalCells = 42;
   const emptyCellsBefore = Array(firstDayOfMonth).fill(null);
   const emptyCellsAfter = Array(totalCells - (emptyCellsBefore.length + days.length)).fill(null);
 
@@ -104,7 +97,7 @@ export default function Page() {
             ◀
           </button>
           <h1 className="text-2xl font-bold text-orange-600">
-            {KHMER_MONTHS[month + 1]} {year}
+            {KHMER_MONTHS[String(month + 1)]} {year}
           </h1>
           <button
             onClick={nextMonth}
@@ -116,9 +109,7 @@ export default function Page() {
         </div>
 
         {error && (
-          <div className="text-red-600 text-center mb-4">
-            Error: {error}
-          </div>
+          <div className="text-red-600 text-center mb-4">{error}</div>
         )}
 
         {loading ? (
