@@ -13,7 +13,7 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="📌 Code pushed to *main* by ${{ github.actor }} in repo *${{ github.repository }}*." \
+          -d text="📌 Code pushed by *${{ github.actor }}* to *${{ github.repository }}* on branch *${{ github.ref_name }}* with commit message: _${{ github.event.head_commit.message }}_" \
           -d parse_mode="Markdown"
 
   deploy:
@@ -42,7 +42,8 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="✅ Deployment successful on Vercel!"
+          -d text="✅ Deployment successful for *${{ github.repository }}* on branch *${{ github.ref_name }}*." \
+          -d parse_mode="Markdown"
 
   notify-failure:
     needs: deploy
@@ -53,4 +54,5 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="❌ Deployment failed on Vercel!"
+          -d text="❌ Deployment failed for *${{ github.repository }}* on branch *${{ github.ref_name }}*." \
+          -d parse_mode="Markdown"
