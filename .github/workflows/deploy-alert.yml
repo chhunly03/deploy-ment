@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Notify Telegram (push)
+        shell: bash
         run: |
           COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
           COMMIT_ID="${{ github.event.head_commit.id }}"
@@ -37,6 +38,7 @@ Commit: _${COMMIT_MESSAGE}_"
         uses: actions/checkout@v3
 
       - name: Deploy to Vercel
+        shell: bash
         run: |
           if [ -z "$VERCEL_DEPLOY_HOOK" ]; then
             echo "❌ ERROR: VERCEL_DEPLOY_HOOK is not set. Please add it as a repository secret."
@@ -53,6 +55,7 @@ Commit: _${COMMIT_MESSAGE}_"
     runs-on: ubuntu-latest
     steps:
       - name: Notify Telegram (success)
+        shell: bash
         run: |
           COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
           COMMIT_ID="${{ github.event.head_commit.id }}"
@@ -94,6 +97,7 @@ Commit ID: $COMMIT_ID
     runs-on: ubuntu-latest
     steps:
       - name: Notify Telegram (failure)
+        shell: bash
         run: |
           COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
           COMMIT_ID="${{ github.event.head_commit.id }}"
