@@ -23,6 +23,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Notify Telegram (deployment pending)
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
+          -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+          -d text="⏳ Vercel Pending - Vercel is deploying *${{ github.repository }}* on branch *${{ github.ref_name }}*..." \
+          -d parse_mode="Markdown"
+
       - name: Trigger Vercel Deployment
         id: trigger
         run: |
@@ -39,7 +46,7 @@ jobs:
   notify:
     needs: deploy
     runs-on: ubuntu-latest
-    if: always()   # ✅ ensures this job runs even if deploy fails
+    if: always()
     steps:
       - name: Notify Telegram of deployment result
         run: |
