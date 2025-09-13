@@ -1,4 +1,4 @@
-name: deploy
+name: Deploy & Notify
 
 on:
   push:
@@ -24,13 +24,16 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Trigger Vercel Deployment
+        id: trigger
         run: |
           if [ -z "$VERCEL_HOOK_URL" ]; then
             echo "❌ ERROR: VERCEL_HOOK_URL is not set."
             exit 1
           fi
-          echo "🚀 Triggering Vercel deploy..."
-          curl -s -X POST "$VERCEL_HOOK_URL"
+          echo "🚀 Triggering Vercel deployment..."
+          RESPONSE=$(curl -s -X POST "$VERCEL_HOOK_URL")
+          echo "Vercel response: $RESPONSE"
+
         env:
           VERCEL_HOOK_URL: ${{ secrets.VERCEL_HOOK_URL }}
 
@@ -38,9 +41,15 @@ jobs:
     needs: deploy
     runs-on: ubuntu-latest
     steps:
-      - name: Notify Telegram
+      - name: Notify Telegram of deployment result
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
-          -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="🚀 Deployment requested for *${{ github.repository }}* on branch *${{ github.ref_name }}*." \
-          -d parse_mode="Markdown"
+          if [ "${{ needs.deploy.result }}" == "success" ]; then
+            curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d text="✅ Deployment successful for *${{ github.repository }}* on branch *${{ github.ref_name }}*" \
+            -d parse_mode="Markdown"
+          else
+            curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d text="❌ Deployment failed for *${{ github.repository }}* on branch *${{ github.ref_name }}*" \
+            -d parse_mode="Markdown"
