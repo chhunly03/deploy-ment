@@ -1,12 +1,17 @@
-name: deploy
+name: Deploy & Notify
 
 on:
   push:
     branches:
       - main
 
+# Ensure only one deploy workflow runs at a time
+concurrency:
+  group: "deploy-main"
+  cancel-in-progress: true
+
 jobs:
-  # Notify on push
+  # 1️⃣ Notify on push
   notify-push:
     runs-on: ubuntu-latest
     steps:
@@ -14,9 +19,10 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="📌 Code pushed by ${{ github.actor }} to ${{ github.repository }} (branch: ${{ github.ref_name }})"
+          -d text="📌 Code pushed by *${{ github.actor }}* to *${{ github.repository }}* on branch *${{ github.ref_name }}* with commit message: _${{ github.event.head_commit.message }}_" \
+          -d parse_mode="Markdown"
 
-  # Deploy to Vercel
+  # 2️⃣ Deploy to Vercel
   deploy:
     needs: notify-push
     runs-on: ubuntu-latest
@@ -24,17 +30,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Deploy to Vercel
+      - name: Trigger Vercel Deployment
         run: |
-          if [ -z "$ VERCEL_HOOK_URL" ]; then
-            echo "❌ ERROR:  VERCEL_HOOK_URL is not set."
+          if [ -z "$VERCEL_HOOK_URL" ]; then
+            echo "❌ ERROR: VERCEL_HOOK_URL is not set."
             exit 1
           fi
-          curl -s -X POST "$ VERCEL_HOOK_URL"
+          echo "🚀 Deploying latest commit $GITHUB_SHA to Vercel..."
+          curl -s -X POST $VERCEL_HOOK_URL
         env:
-           VERCEL_HOOK_URL: ${{ secrets. VERCEL_HOOK_URL }}
+          VERCEL_HOOK_URL: ${{ secrets.VERCEL_HOOK_URL }}
 
-  # Notify on success
+  # 3️⃣ Notify on success
   notify-success:
     needs: deploy
     if: success()
@@ -44,9 +51,15 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="✅ Deployment successful for ${{ github.repository }} by ${{ github.actor }}"
+          -d text="🚀 Pipeline Notification
+Status: SUCCESS ✅
+Application: *${{ github.repository }}*
+Branch: *${{ github.ref_name }}*
+Committer: *${{ github.actor }}*
+Commit ID: *${{ github.sha }}*" \
+          -d parse_mode="Markdown"
 
-  # Notify on failure
+  # 4️⃣ Notify on failure
   notify-failure:
     needs: deploy
     if: failure()
@@ -56,4 +69,10 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="❌ Deployment failed for ${{ github.repository }} by ${{ github.actor }}"
+          -d text="🚨 Pipeline Notification
+Status: FAILED ❌
+Application: *${{ github.repository }}*
+Branch: *${{ github.ref_name }}*
+Committer: *${{ github.actor }}*
+Commit ID: *${{ github.sha }}*" \
+          -d parse_mode="Markdown"
