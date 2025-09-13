@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "KHMER CALENDAR",
+  title: "Khmers Calendar",
   description: "Cambodian Calendar Application",
 };
 
