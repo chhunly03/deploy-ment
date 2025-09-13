@@ -72,13 +72,12 @@ export default function Page() {
   const getDayColor = (day: Day) => {
     const d = new Date(day.date);
 
-    // Check if this day is today
     const isToday =
       d.getFullYear() === today.getFullYear() &&
       d.getMonth() === today.getMonth() &&
       d.getDate() === today.getDate();
 
-    if (isToday) return "bg-blue-500 text-white font-bold"; // Highlight current day
+    if (isToday) return "bg-blue-500 text-white font-bold"; 
     if (day.isHoliday || d.getDay() === 0) return "bg-red-400 text-white";
     if (d.getDay() === 6) return "bg-yellow-300 text-black";
     return "bg-gray-100 text-black";
@@ -92,10 +91,17 @@ export default function Page() {
     return "Normal Day";
   };
 
-  const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0 = Sunday
+  const firstDayOfMonth = new Date(year, month, 1).getDay();
   const totalCells = 42;
   const emptyCellsBefore = Array(firstDayOfMonth).fill(null);
   const emptyCellsAfter = Array(totalCells - (emptyCellsBefore.length + days.length)).fill(null);
+
+  // Click outside to close tooltip on mobile
+  useEffect(() => {
+    const handleClickOutside = () => setHoveredDay(null);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-gradient-to-br from-orange-50 to-orange-100 p-6">
@@ -139,30 +145,44 @@ export default function Page() {
                 <div key={`empty-before-${i}`} className="h-16" />
               ))}
 
-              {days.map((day) => (
-                <motion.div
-                  key={day.date}
-                  whileHover={{ scale: 1.05 }}
-                  className={`relative flex items-center justify-center h-16 rounded-lg cursor-pointer ${getDayColor(day)}`}
-                  onMouseEnter={() => setHoveredDay(day)}
-                  onMouseLeave={() => setHoveredDay(null)}
-                >
-                  {day.day}
-                  {hoveredDay?.date === day.date && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className="absolute bottom-20 p-2 w-44 bg-black text-white text-sm rounded-lg shadow-lg z-10"
-                    >
-                      <div className="font-semibold text-orange-400">
-                        {KHMER_WEEKDAYS[new Date(day.date).getDay()]}
-                      </div>
-                      <div>{getDayType(day)}</div>
-                    </motion.div>
-                  )}
-                </motion.div>
-              ))}
+              {days.map((day) => {
+                const isActive = hoveredDay?.date === day.date;
+                return (
+                  <motion.div
+                    key={day.date}
+                    whileHover={{ scale: 1.05 }}
+                    className={`relative flex items-center justify-center h-16 rounded-lg cursor-pointer ${getDayColor(day)}`}
+                    onMouseEnter={(e) => {
+                      e.stopPropagation();
+                      setHoveredDay(day);
+                    }}
+                    onMouseLeave={(e) => {
+                      e.stopPropagation();
+                      setHoveredDay(null);
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setHoveredDay((prev) => (prev?.date === day.date ? null : day));
+                    }}
+                  >
+                    {day.day}
+
+                    {isActive && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute bottom-20 p-2 w-44 bg-black text-white text-sm rounded-lg shadow-lg z-10"
+                      >
+                        <div className="font-semibold text-orange-400">
+                          {KHMER_WEEKDAYS[new Date(day.date).getDay()]}
+                        </div>
+                        <div>{getDayType(day)}</div>
+                      </motion.div>
+                    )}
+                  </motion.div>
+                );
+              })}
 
               {emptyCellsAfter.map((_, i) => (
                 <div key={`empty-after-${i}`} className="h-16" />
