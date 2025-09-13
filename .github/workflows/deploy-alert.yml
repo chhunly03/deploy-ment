@@ -1,4 +1,4 @@
-name: deploy-alert
+name: deploy
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
       - main
 
 jobs:
+  # Notify on push
   notify-push:
     runs-on: ubuntu-latest
     steps:
@@ -16,6 +17,7 @@ jobs:
           -d text="📌 Code pushed by *${{ github.actor }}* to *${{ github.repository }}* on branch *${{ github.ref_name }}* with commit message: _${{ github.event.head_commit.message }}_" \
           -d parse_mode="Markdown"
 
+  # Deploy to Vercel
   deploy:
     needs: notify-push
     runs-on: ubuntu-latest
@@ -26,50 +28,35 @@ jobs:
       - name: Deploy to Vercel
         run: |
           if [ -z "$VERCEL_DEPLOY_HOOK" ]; then
-            echo "❌ ERROR: VERCEL_DEPLOY_HOOK is not set."
+            echo "❌ ERROR: VERCEL_DEPLOY_HOOK is not set. Please add it as a repository secret in GitHub."
             exit 1
           fi
-
-          echo "🚀 Triggering Vercel deployment..."
-          response=$(curl -s -w "%{http_code}" -o /tmp/vercel_response.txt -X POST "$VERCEL_DEPLOY_HOOK")
-          if [ "$response" -ne 200 ] && [ "$response" -ne 201 ]; then
-            echo "❌ Vercel deploy failed! Response code: $response"
-            cat /tmp/vercel_response.txt
-            exit 1
-          fi
+          curl -s -X POST "$VERCEL_DEPLOY_HOOK"
         env:
           VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
 
+  # Notify on success
   notify-success:
     needs: deploy
+    if: success()
     runs-on: ubuntu-latest
-    if: ${{ success() }}
     steps:
       - name: Notify Telegram (success)
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="🚀 Pipeline Notification
-Status: SUCCESS ✅
-Application: *${{ github.repository }}*
-Branch: *${{ github.ref_name }}*
-Committer: *${{ github.actor }}*
-Commit ID: _${{ github.event.head_commit.id }}_" \
+          -d text="🚀 Pipeline Notification\nStatus: SUCCESS ✅\nApplication: *${{ github.repository }}*\nBranch: *${{ github.ref_name }}*\nCommitter: *${{ github.actor }}*\nCommit ID: _${{ github.event.head_commit.id }}_" \
           -d parse_mode="Markdown"
 
+  # Notify on failure
   notify-failure:
     needs: deploy
+    if: failure()
     runs-on: ubuntu-latest
-    if: ${{ failure() }}
     steps:
       - name: Notify Telegram (failure)
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="🚀 Pipeline Notification
-Status: FAILURE ❌
-Application: *${{ github.repository }}*
-Branch: *${{ github.ref_name }}*
-Committer: *${{ github.actor }}*
-Commit ID: _${{ github.event.head_commit.id }}_" \
+          -d text="🚀 Pipeline Notification\nStatus: FAILURE ❌\nApplication: *${{ github.repository }}*\nBranch: *${{ github.ref_name }}*\nCommitter: *${{ github.actor }}*\nCommit ID: _${{ github.event.head_commit.id }}_" \
           -d parse_mode="Markdown"
