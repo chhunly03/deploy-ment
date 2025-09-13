@@ -39,6 +39,7 @@ jobs:
   notify:
     needs: deploy
     runs-on: ubuntu-latest
+    if: always()   # ✅ ensures this job runs even if deploy fails
     steps:
       - name: Notify Telegram of deployment result
         run: |
