@@ -1,4 +1,4 @@
-name: Deploy & Notify
+name: deploy
 
 on:
   push:
@@ -6,60 +6,53 @@ on:
       - main
 
 jobs:
+  notify-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Telegram (push)
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
+          -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+          -d text="📌 Code pushed by *${{ github.actor }}* to *${{ github.repository }}* on branch *${{ github.ref_name }}* with commit message: _${{ github.event.head_commit.message }}_" \
+          -d parse_mode="Markdown"
+
   deploy:
     runs-on: ubuntu-latest
-    env:
-      # Make sure these secrets exist in GitHub Settings → Secrets and variables → Actions
-      VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
-      TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-
+    needs: notify-push
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Trigger Vercel Deploy
-        id: trigger
+      - name: Deploy to Vercel
         run: |
-          if [ -z "${VERCEL_DEPLOY_HOOK}" ]; then
-            echo "❌ VERCEL_DEPLOY_HOOK is not set. Add it to repo secrets."
+          if [ -z "$VERCEL_DEPLOY_HOOK" ]; then
+            echo "❌ ERROR: VERCEL_DEPLOY_HOOK is not set. Please add it as a repository secret in GitHub."
             exit 1
           fi
+          curl -X POST "$VERCEL_DEPLOY_HOOK"
+        env:
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
 
-          echo "Triggering Vercel deploy..."
-          # Trigger the Vercel deploy hook (this is asynchronous)
-          curl -sS -X POST "${VERCEL_DEPLOY_HOOK}" -o /tmp/vercel_response.txt || true
-          echo "Vercel response:"
-          cat /tmp/vercel_response.txt || true
-
-      - name: Notify Telegram (always)
-        if: always()
+  notify-success:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: needs.deploy.result == 'success'
+    steps:
+      - name: Notify Telegram (success)
         run: |
-          # Determine job status (success or failure)
-          if [ "${{ job.status }}" = "success" ]; then
-            STATUS="SUCCESS ✅"
-          else
-            STATUS="FAILED ❌"
-          fi
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
+          -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+          -d text="✅ Deployment successful for *${{ github.repository }}* on branch *${{ github.ref_name }}*." \
+          -d parse_mode="Markdown"
 
-          # Branch name cleanup (remove refs/heads/)
-          BRANCH="${GITHUB_REF#refs/heads/}"
-
-          # Get last commit message (repo checked out above)
-          COMMIT_MSG="$(git log -1 --pretty=%B | tr -d '\r')"
-
-          MESSAGE="🚀 Pipeline Notification
-Status: $STATUS
-Repository: ${GITHUB_REPOSITORY}
-Branch: $BRANCH
-Committer: ${GITHUB_ACTOR}
-Commit ID: ${GITHUB_SHA}
-Commit Message: $COMMIT_MSG
-🔗 Workflow Logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-
-          echo "Sending Telegram message..."
-          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
-            -d chat_id="${TELEGRAM_CHAT_ID}" \
-            -d text="$MESSAGE" \
-            -d parse_mode="Markdown" \
-            || echo "❌ Failed to send Telegram message"
+  notify-failure:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: needs.deploy.result == 'failure'
+    steps:
+      - name: Notify Telegram (failure)
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
+          -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+          -d text="❌ Deployment failed for *${{ github.repository }}* on branch *${{ github.ref_name }}*." \
+          -d parse_mode="Markdown"
