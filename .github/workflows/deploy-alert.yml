@@ -9,13 +9,13 @@ jobs:
   notify-push:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Notify Telegram (push)
         run: |
-          COMMIT_MESSAGE=$(gh api repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA} --jq .commit.message)
-          MESSAGE="📌 Code pushed by *${GITHUB_ACTOR}*
-Repository: *${GITHUB_REPOSITORY}*
-Branch: *${GITHUB_REF_NAME}*
-Commit message: _${COMMIT_MESSAGE}_"
+          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          MESSAGE='📌 Code pushed by *${GITHUB_ACTOR}*\nRepository: *${GITHUB_REPOSITORY}*\nBranch: *${GITHUB_REF_NAME}*\nCommit message: _${COMMIT_MESSAGE}_'
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
             -d text="$MESSAGE" \
@@ -50,11 +50,7 @@ Commit message: _${COMMIT_MESSAGE}_"
           else
             STATUS="🚀 Pipeline Notification - FAILURE ❌"
           fi
-          MESSAGE="${STATUS}
-Application: *${GITHUB_REPOSITORY}*
-Branch: *${GITHUB_REF_NAME}* 
-Committer: *${GITHUB_ACTOR}*
-Commit ID: \`${GITHUB_SHA}\`"
+          MESSAGE='${STATUS}\nApplication: *${GITHUB_REPOSITORY}*\nBranch: *${GITHUB_REF_NAME}*\nCommitter: *${GITHUB_ACTOR}*\nCommit ID: `${GITHUB_SHA}`'
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
             -d text="$MESSAGE" \
