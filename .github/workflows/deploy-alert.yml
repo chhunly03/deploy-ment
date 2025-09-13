@@ -5,6 +5,7 @@ on:
     branches:
       - main
 
+# Ensure only one deploy workflow runs at a time
 concurrency:
   group: "deploy-main"
   cancel-in-progress: true
@@ -18,7 +19,8 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="📌 Code pushed by ${{ github.actor }} to ${{ github.repository }} (branch: ${{ github.ref_name }})"
+          -d text="📌 Code pushed by *${{ github.actor }}* to *${{ github.repository }}* (branch: *${{ github.ref_name }}*) with commit: _${{ github.event.head_commit.message }}_" \
+          -d parse_mode="Markdown"
 
   # Deploy to Vercel
   deploy:
@@ -35,7 +37,9 @@ jobs:
             exit 1
           fi
           echo "🚀 Triggering Vercel deploy for commit $GITHUB_SHA"
-          curl -s -X POST "$VERCEL_DEPLOY_HOOK"
+          curl -s -X POST "$VERCEL_DEPLOY_HOOK" || { echo "⚠️ Vercel deploy hook failed"; exit 1; }
+        env:
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
 
   # Notify on success
   notify-success:
@@ -47,7 +51,8 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="✅ Deployment successful for ${{ github.repository }} by ${{ github.actor }} (commit: ${{ github.sha }})"
+          -d text="🚀 Pipeline Notification\nStatus: SUCCESS ✅\nApplication: ${{ github.repository }}\nBranch: ${{ github.ref_name }}\nCommitter: ${{ github.actor }}\nCommit ID: ${{ github.sha }}" \
+          -d parse_mode="Markdown"
 
   # Notify on failure
   notify-failure:
@@ -59,4 +64,5 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="❌ Deployment failed for ${{ github.repository }} by ${{ github.actor }} (commit: ${{ github.sha }})"
+          -d text="🚀 Pipeline Notification\nStatus: FAILED ❌\nApplication: ${{ github.repository }}\nBranch: ${{ github.ref_name }}\nCommitter: ${{ github.actor }}\nCommit ID: ${{ github.sha }}" \
+          -d parse_mode="Markdown"
