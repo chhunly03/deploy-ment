@@ -6,6 +6,7 @@ on:
       - main
 
 jobs:
+  # 1️⃣ Notify on push
   notify-push:
     runs-on: ubuntu-latest
     steps:
@@ -16,38 +17,71 @@ jobs:
           -d text="📌 Code pushed by *${{ github.actor }}* to *${{ github.repository }}* on branch *${{ github.ref_name }}* with commit message: _${{ github.event.head_commit.message }}_" \
           -d parse_mode="Markdown"
 
+  # 2️⃣ Deploy to Vercel
   deploy:
     needs: notify-push
     runs-on: ubuntu-latest
+    outputs:
+      deployment_state: ${{ steps.wait.outputs.state }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Trigger Vercel Deployment
-        id: deploy
+        id: trigger
         run: |
           if [ -z "$VERCEL_HOOK_URL" ]; then
             echo "❌ ERROR: VERCEL_HOOK_URL is not set."
             exit 1
           fi
           echo "🚀 Triggering Vercel deployment..."
-          curl -s -X POST "$VERCEL_HOOK_URL"
-          DEPLOY_RESULT=$?
-          echo "deploy_result=$DEPLOY_RESULT" >> $GITHUB_OUTPUT
+          RESPONSE=$(curl -s -X POST "$VERCEL_HOOK_URL")
+          echo "Vercel response: $RESPONSE"
+          DEPLOY_ID=$(echo "$RESPONSE" | jq -r '.job.id')
+          echo "Deploy ID: $DEPLOY_ID"
+          echo "deploy_id=$DEPLOY_ID" >> $GITHUB_OUTPUT
+        env:
+          VERCEL_HOOK_URL: ${{ secrets.VERCEL_HOOK_URL }}
 
+      - name: Wait for Deployment
+        id: wait
+        run: |
+          DEPLOY_ID="${{ steps.trigger.outputs.deploy_id }}"
+          if [ "$DEPLOY_ID" == "null" ] || [ -z "$DEPLOY_ID" ]; then
+            echo "❌ ERROR: Failed to get deployment ID."
+            echo "state=failure" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          echo "Waiting for Vercel deployment $DEPLOY_ID..."
+          while true; do
+            STATUS=$(curl -s "https://api.vercel.com/v6/deployments/$DEPLOY_ID" | jq -r '.state')
+            echo "Current status: $STATUS"
+            if [ "$STATUS" == "READY" ]; then
+              echo "✅ Deployment successful!"
+              echo "state=success" >> $GITHUB_OUTPUT
+              break
+            elif [ "$STATUS" == "ERROR" ]; then
+              echo "❌ Deployment failed!"
+              echo "state=failure" >> $GITHUB_OUTPUT
+              break
+            fi
+            sleep 10
+          done
+
+  # 3️⃣ Notify result
   notify:
     needs: deploy
     runs-on: ubuntu-latest
     steps:
-      - name: Notify Telegram of deployment result
+      - name: Notify Telegram (success or failure)
         run: |
-          if [ "${{ needs.deploy.outputs.deploy_result }}" == "0" ]; then
+          if [ "${{ needs.deploy.outputs.deployment_state }}" == "success" ]; then
             curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="✅ Deployment triggered successfully for *${{ github.repository }}* on branch *${{ github.ref_name }}*" \
+            -d text="✅ Deployment successful for *${{ github.repository }}* on branch *${{ github.ref_name }}*" \
             -d parse_mode="Markdown"
           else
             curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="❌ Deployment trigger failed for *${{ github.repository }}* on branch *${{ github.ref_name }}*" \
+            -d text="❌ Deployment failed for *${{ github.repository }}* on branch *${{ github.ref_name }}*" \
             -d parse_mode="Markdown"
