@@ -2,7 +2,15 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
-const KHMER_WEEKDAYS = ["អាទិត្យ", "ច័ន្ទ", "អង្គារ", "ពុធ", "ព្រហស្បតិ៍", "សុក្រ", "សៅរ៍"];
+const KHMER_WEEKDAYS = [
+  "អាទិត្យ",
+  "ច័ន្ទ",
+  "អង្គារ",
+  "ពុធ",
+  "ព្រហស្បតិ៍",
+  "សុក្រ",
+  "សៅរ៍",
+];
 const KHMER_MONTHS: Record<number, string> = {
   1: "មករា",
   2: "កុម្ភៈ",
@@ -38,7 +46,9 @@ export default function Page() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/khmer-calendar?year=${year}&month=${month + 1}`);
+      const res = await fetch(
+        `/api/khmer-calendar?year=${year}&month=${month + 1}`
+      );
       if (!res.ok) throw new Error("Failed to fetch calendar data");
       const data: Day[] = await res.json();
       setDays(data);
@@ -93,7 +103,9 @@ export default function Page() {
   const firstDayOfMonth = new Date(year, month, 1).getDay();
   const totalCells = 42;
   const emptyCellsBefore = Array(firstDayOfMonth).fill(null);
-  const emptyCellsAfter = Array(totalCells - (emptyCellsBefore.length + days.length)).fill(null);
+  const emptyCellsAfter = Array(
+    totalCells - (emptyCellsBefore.length + days.length)
+  ).fill(null);
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-gradient-to-br from-orange-50 to-orange-100 p-4 sm:p-6">
@@ -121,7 +133,11 @@ export default function Page() {
           </button>
         </div>
 
-        {error && <div className="text-red-600 text-center mb-4 text-sm sm:text-base">{error}</div>}
+        {error && (
+          <div className="text-red-600 text-center mb-4 text-sm sm:text-base">
+            {error}
+          </div>
+        )}
 
         {loading ? (
           <div className="text-center text-gray-600">Loading...</div>
@@ -144,7 +160,9 @@ export default function Page() {
                 <motion.div
                   key={day.date}
                   whileHover={{ scale: 1.05 }}
-                  className={`relative flex items-center justify-center h-10 sm:h-16 rounded-lg cursor-pointer text-xs sm:text-base ${getDayColor(day)}`}
+                  className={`relative flex items-center justify-center h-10 sm:h-16 rounded-lg cursor-pointer text-xs sm:text-base ${getDayColor(
+                    day
+                  )}`}
                   onMouseEnter={() => setHoveredDay(day)}
                   onMouseLeave={() => setHoveredDay(null)}
                 >
@@ -154,7 +172,10 @@ export default function Page() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0 }}
-                      className="absolute bottom-14 sm:bottom-20 p-1 sm:p-2 w-32 sm:w-44 bg-black text-white text-xs sm:text-sm rounded-lg shadow-lg z-10"
+                      className="absolute bottom-14 sm:bottom-20 left-1/2 -translate-x-1/2 
+               p-1 sm:p-2 max-w-[90vw] bg-black text-white 
+               text-xs sm:text-sm rounded-lg shadow-lg z-10 
+               whitespace-normal break-words text-center"
                     >
                       <div className="font-semibold text-orange-400">
                         {KHMER_WEEKDAYS[new Date(day.date).getDay()]}
