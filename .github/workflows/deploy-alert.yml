@@ -15,11 +15,15 @@ jobs:
       - name: Notify Telegram (push)
         run: |
           COMMIT_MESSAGE=$(git log -1 --pretty=%B)
-          MESSAGE="📌 Code pushed by *${GITHUB_ACTOR}*\nRepository: *${GITHUB_REPOSITORY}*\nBranch: *${GITHUB_REF_NAME}*\nCommit message: _${COMMIT_MESSAGE}_"
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
-            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="$MESSAGE" \
-            -d parse_mode="Markdown"
+          MESSAGE: |
+            📌 Code pushed by *${GITHUB_ACTOR}*
+            Repository: *${GITHUB_REPOSITORY}*
+            Branch: *${GITHUB_REF_NAME}*
+            Commit message: _${COMMIT_MESSAGE}_
+          curl -s -X POST \"https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage\" \
+            -d chat_id=\"${{ secrets.TELEGRAM_CHAT_ID }}\" \
+            -d text=\"$MESSAGE\" \
+            -d parse_mode=\"Markdown\"
 
   deploy:
     runs-on: ubuntu-latest
@@ -60,20 +64,21 @@ jobs:
           REVISION="117"
           VERSION="dev-v0.2.77"
           BUILD_URL="http://10.11.20.249:8080/job/acleda-api/job/qrt_payment/278/"
-          MESSAGE="🚀 Pipeline Notification
-Status: ${STATUS}
-Namespace: ${NAMESPACE}
-Application: ${APP_NAME}
-Environment: ${ENVIRONMENT}
-Release Name: ${RELEASE_NAME}
-Last Deployed: ${LAST_DEPLOYED}
-Release Status: ${RELEASE_STATUS}
-Revision: ${REVISION}
-Version: ${VERSION}
-Branch: origin/${GITHUB_REF_NAME}
-Committer: ${GITHUB_ACTOR}
-Commit ID: ${GITHUB_SHA}
-🔗 View Build Details (${BUILD_URL})"
+          MESSAGE: |
+            🚀 Pipeline Notification
+            Status: ${STATUS}
+            Namespace: ${NAMESPACE}
+            Application: ${APP_NAME}
+            Environment: ${ENVIRONMENT}
+            Release Name: ${RELEASE_NAME}
+            Last Deployed: ${LAST_DEPLOYED}
+            Release Status: ${RELEASE_STATUS}
+            Revision: ${REVISION}
+            Version: ${VERSION}
+            Branch: origin/${GITHUB_REF_NAME}
+            Committer: ${GITHUB_ACTOR}
+            Commit ID: ${GITHUB_SHA}
+            🔗 View Build Details (${BUILD_URL})
           curl -s -X POST \"https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage\" \
             -d chat_id=\"${{ secrets.TELEGRAM_CHAT_ID }}\" \
             -d text=\"$MESSAGE\" \
