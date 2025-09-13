@@ -11,10 +11,11 @@ jobs:
     steps:
       - name: Notify Telegram (push)
         run: |
+          COMMIT_MESSAGE=$(gh api repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA} --jq .commit.message)
           MESSAGE="📌 Code pushed by *${GITHUB_ACTOR}*
 Repository: *${GITHUB_REPOSITORY}*
 Branch: *${GITHUB_REF_NAME}*
-Commit message: _${GITHUB_EVENT_HEAD_COMMIT_MESSAGE}_"
+Commit message: _${COMMIT_MESSAGE}_"
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
             -d text="$MESSAGE" \
@@ -51,7 +52,7 @@ Commit message: _${GITHUB_EVENT_HEAD_COMMIT_MESSAGE}_"
           fi
           MESSAGE="${STATUS}
 Application: *${GITHUB_REPOSITORY}*
-Branch: *${GITHUB_REF_NAME}*
+Branch: *${GITHUB_REF_NAME}* 
 Committer: *${GITHUB_ACTOR}*
 Commit ID: \`${GITHUB_SHA}\`"
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
