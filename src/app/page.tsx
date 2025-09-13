@@ -27,7 +27,7 @@ interface Day {
 
 export default function Page() {
   const today = new Date();
-  const [month, setMonth] = useState<number>(today.getMonth()); 
+  const [month, setMonth] = useState<number>(today.getMonth());
   const [year, setYear] = useState<number>(today.getFullYear());
   const [days, setDays] = useState<Day[]>([]);
   const [hoveredDay, setHoveredDay] = useState<Day | null>(null);
@@ -71,6 +71,14 @@ export default function Page() {
 
   const getDayColor = (day: Day) => {
     const d = new Date(day.date);
+
+    // Check if this day is today
+    const isToday =
+      d.getFullYear() === today.getFullYear() &&
+      d.getMonth() === today.getMonth() &&
+      d.getDate() === today.getDate();
+
+    if (isToday) return "bg-blue-500 text-white font-bold"; // Highlight current day
     if (day.isHoliday || d.getDay() === 0) return "bg-red-400 text-white";
     if (d.getDay() === 6) return "bg-yellow-300 text-black";
     return "bg-gray-100 text-black";
