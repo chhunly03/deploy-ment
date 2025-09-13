@@ -26,11 +26,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # fetch full history for Vercel
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Install Vercel CLI
         run: npm install -g vercel
@@ -38,7 +43,7 @@ jobs:
       - name: Deploy to Vercel
         run: |
           echo "🚀 Deploying latest commit $GITHUB_SHA to Vercel..."
-          vercel deploy --prod --confirm --token $VERCEL_TOKEN --scope $VERCEL_ORG_ID --project $VERCEL_PROJECT_ID
+          vercel deploy --prod --confirm --token $VERCEL_TOKEN --scope $VERCEL_ORG_ID --project $VERCEL_PROJECT_ID --debug
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -53,7 +58,7 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="🚀 Pipeline Notification Status: SUCCESS ✅ Application: *${{ github.repository }}* Branch: *${{ github.ref_name }}* Committer: *${{ github.actor }}* Commit ID: *${{ github.sha }}*" \
+          -d text="🚀 Pipeline Notification\nStatus: SUCCESS ✅\nApplication: *${{ github.repository }}*\nBranch: *${{ github.ref_name }}*\nCommitter: *${{ github.actor }}*\nCommit ID: *${{ github.sha }}*" \
           -d parse_mode="Markdown"
 
   notify-failure:
@@ -65,5 +70,5 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="🚨 Pipeline Notification Status: FAILED ❌ Application: *${{ github.repository }}* Branch: *${{ github.ref_name }}* Committer: *${{ github.actor }}* Commit ID: *${{ github.sha }}*" \
+          -d text="🚨 Pipeline Notification\nStatus: FAILED ❌\nApplication: *${{ github.repository }}*\nBranch: *${{ github.ref_name }}*\nCommitter: *${{ github.actor }}*\nCommit ID: *${{ github.sha }}*" \
           -d parse_mode="Markdown"
