@@ -11,10 +11,8 @@ jobs:
     steps:
       - name: Notify Telegram (push)
         run: |
-          MESSAGE="📌 Code pushed by *${GITHUB_ACTOR}*
-Repository: *${GITHUB_REPOSITORY}*
-Branch: *${GITHUB_REF_NAME}*
-Commit message: _${GITHUB_EVENT_HEAD_COMMIT_MESSAGE}_"
+          STATUS="📌 Code pushed"
+          MESSAGE="*${STATUS} by ${GITHUB_ACTOR}*\nRepository: *${GITHUB_REPOSITORY}*\nBranch: *${GITHUB_REF_NAME}*\nCommit message: _${GITHUB_EVENT_HEAD_COMMIT_MESSAGE}_"
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
             -d text="$MESSAGE" \
@@ -38,37 +36,18 @@ Commit message: _${GITHUB_EVENT_HEAD_COMMIT_MESSAGE}_"
         env:
           VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
 
-  notify-success:
+  notify-result:
     needs: deploy
     runs-on: ubuntu-latest
-    if: success()
     steps:
-      - name: Notify Telegram (success)
+      - name: Notify Telegram (success/failure)
         run: |
-          MESSAGE="🚀 Pipeline Notification
-Status: SUCCESS ✅
-Application: *${GITHUB_REPOSITORY}*
-Branch: *${GITHUB_REF_NAME}*
-Committer: *${GITHUB_ACTOR}*
-Commit ID: \`${GITHUB_SHA}\`"
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
-            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="$MESSAGE" \
-            -d parse_mode="Markdown"
-
-  notify-failure:
-    needs: deploy
-    runs-on: ubuntu-latest
-    if: failure()
-    steps:
-      - name: Notify Telegram (failure)
-        run: |
-          MESSAGE="🚀 Pipeline Notification
-Status: FAILURE ❌
-Application: *${GITHUB_REPOSITORY}*
-Branch: *${GITHUB_REF_NAME}*
-Committer: *${GITHUB_ACTOR}*
-Commit ID: \`${GITHUB_SHA}\`"
+          if [ "${{ job.status }}" == "success" ]; then
+            STATUS="🚀 Pipeline Notification - SUCCESS ✅"
+          else
+            STATUS="🚀 Pipeline Notification - FAILURE ❌"
+          fi
+          MESSAGE="${STATUS}\nApplication: *${GITHUB_REPOSITORY}*\nBranch: *${GITHUB_REF_NAME}*\nCommitter: *${GITHUB_ACTOR}*\nCommit ID: \`${GITHUB_SHA}\`"
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
             -d text="$MESSAGE" \
