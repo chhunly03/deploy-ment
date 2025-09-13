@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
-const KHMER_WEEKDAYS = ["អាទិត្យ", "ច័ន្ទ", "អង្គារ", "ពុធ", "ព្រហស្បតិ៍", "សុក្រ", "សៅរ៍"];
+const KHMER_WEEKDAYS = ["អា", "ច", "អ", "ពុ", "ព្រ", "សុ", "សៅ"];
 const KHMER_MONTHS: Record<number, string> = {
   1: "មករា",
   2: "កុម្ភៈ",
