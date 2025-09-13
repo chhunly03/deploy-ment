@@ -19,8 +19,6 @@ jobs:
   deploy:
     needs: notify-push
     runs-on: ubuntu-latest
-    outputs:
-      deployment_state: ${{ steps.check_status.outputs.state }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -28,33 +26,15 @@ jobs:
       - name: Trigger Vercel Deployment
         id: trigger
         run: |
+          if [ -z "$VERCEL_HOOK_URL" ]; then
+            echo "❌ ERROR: VERCEL_HOOK_URL is not set."
+            exit 1
+          fi
           echo "🚀 Triggering Vercel deployment..."
           RESPONSE=$(curl -s -X POST "$VERCEL_HOOK_URL")
-          DEPLOY_ID=$(echo "$RESPONSE" | jq -r '.job.id')
-          echo "Deployment ID: $DEPLOY_ID"
-          echo "deploy_id=$DEPLOY_ID" >> $GITHUB_OUTPUT
+          echo "Vercel response: $RESPONSE"
         env:
           VERCEL_HOOK_URL: ${{ secrets.VERCEL_HOOK_URL }}
-
-      - name: Wait for Vercel Deployment to finish
-        id: check_status
-        run: |
-          DEPLOY_ID="${{ steps.trigger.outputs.deploy_id }}"
-          echo "Waiting for Vercel deployment $DEPLOY_ID..."
-          while true; do
-            STATUS=$(curl -s "https://api.vercel.com/v1/integrations/deploy/${DEPLOY_ID}" | jq -r '.state')
-            echo "Current status: $STATUS"
-            if [ "$STATUS" == "READY" ]; then
-              echo "Deployment finished successfully."
-              echo "state=success" >> $GITHUB_OUTPUT
-              break
-            elif [ "$STATUS" == "ERROR" ]; then
-              echo "Deployment failed."
-              echo "state=failure" >> $GITHUB_OUTPUT
-              break
-            fi
-            sleep 10
-          done
 
   notify:
     needs: deploy
@@ -62,7 +42,7 @@ jobs:
     steps:
       - name: Notify Telegram of deployment result
         run: |
-          if [ "${{ needs.deploy.outputs.deployment_state }}" == "success" ]; then
+          if [ "${{ needs.deploy.result }}" == "success" ]; then
             curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
             -d text="✅ Deployment successful for *${{ github.repository }}* on branch *${{ github.ref_name }}*" \
