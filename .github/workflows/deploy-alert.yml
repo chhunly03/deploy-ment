@@ -10,6 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Notify Telegram on push
   notify-push:
     runs-on: ubuntu-latest
     steps:
@@ -20,6 +21,7 @@ jobs:
           -d text="📌 Code pushed by *${{ github.actor }}* to *${{ github.repository }}* on branch *${{ github.ref_name }}* with commit message: _${{ github.event.head_commit.message }}_" \
           -d parse_mode="Markdown"
 
+  # Deploy to Vercel
   deploy:
     needs: notify-push
     runs-on: ubuntu-latest
@@ -27,7 +29,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # fetch full history for Vercel
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -35,7 +37,7 @@ jobs:
           node-version: "20"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Install Vercel CLI
         run: npm install -g vercel
@@ -49,6 +51,7 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
+  # Notify Telegram on success
   notify-success:
     needs: deploy
     if: success()
@@ -61,6 +64,7 @@ jobs:
           -d text="🚀 Pipeline Notification\nStatus: SUCCESS ✅\nApplication: *${{ github.repository }}*\nBranch: *${{ github.ref_name }}*\nCommitter: *${{ github.actor }}*\nCommit ID: *${{ github.sha }}*" \
           -d parse_mode="Markdown"
 
+  # Notify Telegram on failure
   notify-failure:
     needs: deploy
     if: failure()
