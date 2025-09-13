@@ -30,11 +30,11 @@ export default function Page() {
   const [month, setMonth] = useState<number>(today.getMonth());
   const [year, setYear] = useState<number>(today.getFullYear());
   const [days, setDays] = useState<Day[]>([]);
-  const [hoveredDay, setHoveredDay] = useState<Day | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [activeDay, setActiveDay] = useState<Day | null>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchDays = async (): Promise<void> => {
+  const fetchDays = async () => {
     setLoading(true);
     setError(null);
     try {
@@ -43,8 +43,7 @@ export default function Page() {
       const data: Day[] = await res.json();
       setDays(data);
     } catch (err: unknown) {
-      if (err instanceof Error) setError(err.message);
-      else setError(String(err));
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -52,7 +51,6 @@ export default function Page() {
 
   useEffect(() => {
     fetchDays();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [month, year]);
 
   const prevMonth = () => {
@@ -71,13 +69,8 @@ export default function Page() {
 
   const getDayColor = (day: Day) => {
     const d = new Date(day.date);
-
-    const isToday =
-      d.getFullYear() === today.getFullYear() &&
-      d.getMonth() === today.getMonth() &&
-      d.getDate() === today.getDate();
-
-    if (isToday) return "bg-blue-500 text-white font-bold"; 
+    const isToday = d.toDateString() === today.toDateString();
+    if (isToday) return "bg-blue-500 text-white font-bold";
     if (day.isHoliday || d.getDay() === 0) return "bg-red-400 text-white";
     if (d.getDay() === 6) return "bg-yellow-300 text-black";
     return "bg-gray-100 text-black";
@@ -96,32 +89,23 @@ export default function Page() {
   const emptyCellsBefore = Array(firstDayOfMonth).fill(null);
   const emptyCellsAfter = Array(totalCells - (emptyCellsBefore.length + days.length)).fill(null);
 
-  // Click outside to close tooltip on mobile
-  useEffect(() => {
-    const handleClickOutside = () => setHoveredDay(null);
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, []);
-
   return (
-    <div className="min-h-screen flex flex-col items-center bg-gradient-to-br from-orange-50 to-orange-100 p-6">
-      <div className="max-w-4xl w-full bg-white rounded-2xl shadow-lg p-6">
-        <div className="flex items-center justify-between mb-6">
+    <div className="min-h-screen flex flex-col items-center bg-gradient-to-br from-orange-50 to-orange-100 p-4 sm:p-6">
+      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
           <button
             onClick={prevMonth}
-            className="px-3 py-1 bg-orange-100 rounded-lg hover:bg-orange-200 disabled:opacity-50"
+            className="px-2 sm:px-3 py-1 bg-orange-100 rounded-lg hover:bg-orange-200 disabled:opacity-50"
             disabled={loading}
           >
             ◀
           </button>
-
-          <h1 className="text-2xl font-bold text-orange-600">
+          <h1 className="text-lg sm:text-2xl font-bold text-orange-600 text-center flex-1">
             {KHMER_MONTHS[month + 1] ?? "Unknown Month"} {year}
           </h1>
-
           <button
             onClick={nextMonth}
-            className="px-3 py-1 bg-orange-100 rounded-lg hover:bg-orange-200 disabled:opacity-50"
+            className="px-2 sm:px-3 py-1 bg-orange-100 rounded-lg hover:bg-orange-200 disabled:opacity-50"
             disabled={loading}
           >
             ▶
@@ -134,35 +118,29 @@ export default function Page() {
           <div className="text-center text-gray-600">Loading...</div>
         ) : (
           <>
-            <div className="grid grid-cols-7 gap-2 mb-2 text-center font-semibold text-gray-600">
+            {/* Weekdays */}
+            <div className="grid grid-cols-7 gap-1 text-center font-semibold text-gray-600 text-xs sm:text-sm mb-1 sm:mb-2">
               {KHMER_WEEKDAYS.map((d, i) => (
                 <div key={i}>{d}</div>
               ))}
             </div>
 
-            <div className="grid grid-cols-7 gap-2">
+            {/* Calendar */}
+            <div className="grid grid-cols-7 gap-1 sm:gap-2">
               {emptyCellsBefore.map((_, i) => (
-                <div key={`empty-before-${i}`} className="h-16" />
+                <div key={`empty-before-${i}`} className="h-12 sm:h-16" />
               ))}
 
               {days.map((day) => {
-                const isActive = hoveredDay?.date === day.date;
+                const isActive = activeDay?.date === day.date;
                 return (
                   <motion.div
                     key={day.date}
                     whileHover={{ scale: 1.05 }}
-                    className={`relative flex items-center justify-center h-16 rounded-lg cursor-pointer ${getDayColor(day)}`}
-                    onMouseEnter={(e) => {
-                      e.stopPropagation();
-                      setHoveredDay(day);
-                    }}
-                    onMouseLeave={(e) => {
-                      e.stopPropagation();
-                      setHoveredDay(null);
-                    }}
+                    className={`relative flex items-center justify-center h-12 sm:h-16 rounded-lg cursor-pointer ${getDayColor(day)}`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setHoveredDay((prev) => (prev?.date === day.date ? null : day));
+                      setActiveDay((prev) => (prev?.date === day.date ? null : day));
                     }}
                   >
                     {day.day}
@@ -172,9 +150,9 @@ export default function Page() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
-                        className="absolute bottom-20 p-2 w-44 bg-black text-white text-sm rounded-lg shadow-lg z-10"
+                        className="absolute bottom-16 sm:bottom-20 p-2 w-40 sm:w-44 bg-black text-white text-xs sm:text-sm rounded-lg shadow-lg z-10"
                       >
-                        <div className="font-semibold text-orange-400">
+                        <div className="font-semibold text-orange-400 text-xs sm:text-sm">
                           {KHMER_WEEKDAYS[new Date(day.date).getDay()]}
                         </div>
                         <div>{getDayType(day)}</div>
@@ -185,7 +163,7 @@ export default function Page() {
               })}
 
               {emptyCellsAfter.map((_, i) => (
-                <div key={`empty-after-${i}`} className="h-16" />
+                <div key={`empty-after-${i}`} className="h-12 sm:h-16" />
               ))}
             </div>
           </>
