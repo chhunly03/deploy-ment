@@ -3,7 +3,7 @@ name: deploy-alert
 on:
   push:
     branches:
-      - main  # Change branch if needed
+      - main
 
 jobs:
   notify-push:
