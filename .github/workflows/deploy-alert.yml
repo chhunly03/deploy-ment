@@ -33,7 +33,6 @@ jobs:
           echo "🚀 Triggering Vercel deployment..."
           RESPONSE=$(curl -s -X POST "$VERCEL_HOOK_URL")
           echo "Vercel response: $RESPONSE"
-
         env:
           VERCEL_HOOK_URL: ${{ secrets.VERCEL_HOOK_URL }}
 
@@ -53,3 +52,4 @@ jobs:
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
             -d text="❌ Deployment failed for *${{ github.repository }}* on branch *${{ github.ref_name }}*" \
             -d parse_mode="Markdown"
+          fi
