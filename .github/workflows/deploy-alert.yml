@@ -26,13 +26,13 @@ jobs:
 
       - name: Deploy to Vercel
         run: |
-          if [ -z "$VERCEL_DEPLOY_HOOK" ]; then
-            echo "❌ ERROR: VERCEL_DEPLOY_HOOK is not set."
+          if [ -z "$ VERCEL_HOOK_URL" ]; then
+            echo "❌ ERROR:  VERCEL_HOOK_URL is not set."
             exit 1
           fi
-          curl -s -X POST "$VERCEL_DEPLOY_HOOK"
+          curl -s -X POST "$ VERCEL_HOOK_URL"
         env:
-          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+           VERCEL_HOOK_URL: ${{ secrets. VERCEL_HOOK_URL }}
 
   # Notify on success
   notify-success:
