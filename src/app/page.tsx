@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 const KHMER_WEEKDAYS = ["អាទិត្យ", "ច័ន្ទ", "អង្គារ", "ពុធ", "ព្រហស្បតិ៍", "សុក្រ", "សៅរ៍"];
 const KHMER_MONTHS: Record<number, string> = {
@@ -30,7 +30,6 @@ export default function Page() {
   const [month, setMonth] = useState<number>(today.getMonth());
   const [year, setYear] = useState<number>(today.getFullYear());
   const [days, setDays] = useState<Day[]>([]);
-  const [activeDay, setActiveDay] = useState<Day | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -131,38 +130,27 @@ export default function Page() {
                 <div key={`empty-before-${i}`} className="h-12 sm:h-16" />
               ))}
 
-              {days.map((day) => {
-                const isActive = activeDay?.date === day.date;
-                return (
-                  <motion.div
-                    key={day.date}
-                    whileHover={{ scale: 1.05 }}
-                    className={`relative flex items-center justify-center h-12 sm:h-16 rounded-lg cursor-pointer ${getDayColor(day)}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveDay((prev) => (prev?.date === day.date ? null : day));
-                    }}
-                  >
-                    {day.day}
+              {days.map((day) => (
+                <motion.div
+                  key={day.date}
+                  whileHover={{ scale: 1.05 }}
+                  className={`relative flex items-center justify-center h-12 sm:h-16 rounded-lg cursor-pointer ${getDayColor(day)}`}
+                >
+                  {day.day}
 
-                    <AnimatePresence>
-                      {isActive && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0 }}
-                          className="absolute bottom-16 sm:bottom-20 p-2 w-40 sm:w-44 bg-black text-white text-xs sm:text-sm rounded-lg shadow-lg z-10"
-                        >
-                          <div className="font-semibold text-orange-400 text-xs sm:text-sm">
-                            {KHMER_WEEKDAYS[new Date(day.date).getDay()]}
-                          </div>
-                          <div>{getDayType(day)}</div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                  {/* Hover Tooltip */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    whileHover={{ opacity: 1, y: 0 }}
+                    className="absolute bottom-16 sm:bottom-20 p-2 w-40 sm:w-44 bg-black text-white text-xs sm:text-sm rounded-lg shadow-lg pointer-events-none"
+                  >
+                    <div className="font-semibold text-orange-400 text-xs sm:text-sm">
+                      {KHMER_WEEKDAYS[new Date(day.date).getDay()]}
+                    </div>
+                    <div>{getDayType(day)}</div>
                   </motion.div>
-                );
-              })}
+                </motion.div>
+              ))}
 
               {emptyCellsAfter.map((_, i) => (
                 <div key={`empty-after-${i}`} className="h-12 sm:h-16" />
