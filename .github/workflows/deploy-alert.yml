@@ -53,7 +53,7 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="🚀 Pipeline Notification\nStatus: SUCCESS ✅\nApplication: *${{ github.repository }}*\nBranch: *${{ github.ref_name }}*\nCommitter: *${{ github.actor }}*\nCommit ID: *${{ github.sha }}*" \
+          -d text="🚀 Pipeline Notification Status: SUCCESS ✅ Application: *${{ github.repository }}* Branch: *${{ github.ref_name }}* Committer: *${{ github.actor }}* Commit ID: *${{ github.sha }}*" \
           -d parse_mode="Markdown"
 
   notify-failure:
@@ -65,5 +65,5 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="🚨 Pipeline Notification\nStatus: FAILED ❌\nApplication: *${{ github.repository }}*\nBranch: *${{ github.ref_name }}*\nCommitter: *${{ github.actor }}*\nCommit ID: *${{ github.sha }}*" \
+          -d text="🚨 Pipeline Notification Status: FAILED ❌ Application: *${{ github.repository }}* Branch: *${{ github.ref_name }}* Committer: *${{ github.actor }}* Commit ID: *${{ github.sha }}*" \
           -d parse_mode="Markdown"
