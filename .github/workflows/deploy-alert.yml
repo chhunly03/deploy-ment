@@ -8,50 +8,39 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Deploy to Vercel
+        id: vercel
         run: |
           if [ -z "$VERCEL_DEPLOY_HOOK" ]; then
-            echo "❌ ERROR: VERCEL_DEPLOY_HOOK is not set. Please add it as a repository secret in GitHub."
+            echo "❌ ERROR: VERCEL_DEPLOY_HOOK is not set."
             exit 1
           fi
           curl -X POST "$VERCEL_DEPLOY_HOOK"
         env:
           VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
 
-      - name: Notify Telegram (deployment success)
-        if: success()
+      - name: Notify Telegram (always)
+        if: always()
         run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            STATUS="SUCCESS ✅"
+          else
+            STATUS="FAILED ❌"
+          fi
+
           MESSAGE="🚀 *Pipeline Notification*
-Status: SUCCESS ✅
+Status: $STATUS
 Repository: *${{ github.repository }}*
-Environment: *Vercel*
 Branch: *${{ github.ref_name }}*
 Committer: *${{ github.actor }}*
 Commit ID: \`${{ github.sha }}\`
 Commit Message: _${{ github.event.head_commit.message }}_
-🔗 [View Commit](${{ github.event.head_commit.url }})"
-
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
-          -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="$MESSAGE" \
-          -d parse_mode="Markdown"
-
-      - name: Notify Telegram (deployment failed)
-        if: failure()
-        run: |
-          MESSAGE="🚀 *Pipeline Notification*
-Status: FAILED ❌
-Repository: *${{ github.repository }}*
-Environment: *Vercel*
-Branch: *${{ github.ref_name }}*
-Committer: *${{ github.actor }}*
-Commit ID: \`${{ github.sha }}\`
-Commit Message: _${{ github.event.head_commit.message }}_
-🔗 [View Commit](${{ github.event.head_commit.url }})"
+🔗 [View Workflow Logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
 
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
