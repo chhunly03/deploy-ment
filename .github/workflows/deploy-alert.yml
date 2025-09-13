@@ -11,23 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Notify Telegram (push)
-        shell: bash
         run: |
-          COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
-          COMMIT_ID="${{ github.event.head_commit.id }}"
-          BRANCH="${{ github.ref_name }}"
-          AUTHOR="${{ github.actor }}"
-
-          MESSAGE="📌 Code Pushed
-Repository: ${{ github.repository }}
-Branch: $BRANCH
-Author: $AUTHOR
-Commit: _${COMMIT_MESSAGE}_"
-
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="$MESSAGE" \
-          -d parse_mode="Markdown"
+          -d text="📌 Code pushed by ${{ github.actor }} to ${{ github.repository }} (branch: ${{ github.ref_name }})"
 
   # Deploy to Vercel
   deploy:
@@ -38,10 +25,9 @@ Commit: _${COMMIT_MESSAGE}_"
         uses: actions/checkout@v3
 
       - name: Deploy to Vercel
-        shell: bash
         run: |
           if [ -z "$VERCEL_DEPLOY_HOOK" ]; then
-            echo "❌ ERROR: VERCEL_DEPLOY_HOOK is not set. Please add it as a repository secret."
+            echo "❌ ERROR: VERCEL_DEPLOY_HOOK is not set."
             exit 1
           fi
           curl -s -X POST "$VERCEL_DEPLOY_HOOK"
@@ -55,40 +41,10 @@ Commit: _${COMMIT_MESSAGE}_"
     runs-on: ubuntu-latest
     steps:
       - name: Notify Telegram (success)
-        shell: bash
         run: |
-          COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
-          COMMIT_ID="${{ github.event.head_commit.id }}"
-          BRANCH="${{ github.ref_name }}"
-          AUTHOR="${{ github.actor }}"
-          NAMESPACE="-api-uat"
-          APPLICATION="qrtpayment"
-          ENVIRONMENT="uat"
-          RELEASE_NAME="qrtpayment-uat-release"
-          RELEASE_STATUS="deployed"
-          VERSION="uat-v0.2.78"
-          LAST_DEPLOYED=$(date "+%a %b %d %T %Y")
-          BUILD_URL="http://10.11.20.249:8080/job/acleda-api/job/qrt_payment/279/"
-
-          MESSAGE="🚀 Pipeline Notification
-Status: SUCCESS ✅
-Namespace: $NAMESPACE
-Application: $APPLICATION
-Environment: $ENVIRONMENT
-Release Name: $RELEASE_NAME
-Last Deployed: $LAST_DEPLOYED
-Release Status: $RELEASE_STATUS
-Revision: $COMMIT_MESSAGE
-Version: $VERSION
-Branch: $BRANCH
-Committer: $AUTHOR
-Commit ID: $COMMIT_ID
-🔗 View Build Details ($BUILD_URL)"
-
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="$MESSAGE" \
-          -d parse_mode="Markdown"
+          -d text="✅ Deployment successful for ${{ github.repository }} by ${{ github.actor }}"
 
   # Notify on failure
   notify-failure:
@@ -97,32 +53,7 @@ Commit ID: $COMMIT_ID
     runs-on: ubuntu-latest
     steps:
       - name: Notify Telegram (failure)
-        shell: bash
         run: |
-          COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
-          COMMIT_ID="${{ github.event.head_commit.id }}"
-          BRANCH="${{ github.ref_name }}"
-          AUTHOR="${{ github.actor }}"
-          NAMESPACE="-api-uat"
-          APPLICATION="qrtpayment"
-          ENVIRONMENT="uat"
-          RELEASE_NAME="qrtpayment-uat-release"
-          VERSION="uat-v0.2.78"
-          BUILD_URL="http://10.11.20.249:8080/job/acleda-api/job/qrt_payment/279/"
-
-          MESSAGE="🚨 Pipeline Notification
-Status: FAILURE ❌
-Namespace: $NAMESPACE
-Application: $APPLICATION
-Environment: $ENVIRONMENT
-Release Name: $RELEASE_NAME
-Branch: $BRANCH
-Committer: $AUTHOR
-Commit ID: $COMMIT_ID
-Revision: $COMMIT_MESSAGE
-🔗 View Build Details ($BUILD_URL)"
-
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="$MESSAGE" \
-          -d parse_mode="Markdown"
+          -d text="❌ Deployment failed for ${{ github.repository }} by ${{ github.actor }}"
